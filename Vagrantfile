@@ -1,43 +1,36 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-#require run command below before vagrant up
-#  vagrant plugin install vagrant-vbguest 
 Vagrant.configure("2") do |config|
+	config.vm.box = "Win7IE9-winrm"
+	config.vm.box_url = "https://tnyila.dm2304.livefilestore.com/y4mWReseCTB-O6-aQQhi-2TTKB5gMnfEWFUKc1bHcxujF9YDd0HVrYs9g_LUxL5pCl19hac4hdr655Nw4REswhy-HMEDWIZp_hVuHLSSV03Uj_mrwZvvJSVpDUrzv8SrEdwPaenCLdbw_DGQ6R70UTj5rb3TiE-XB6bFBcddTCagBbeHV-Fe3ZqRxZtev7iu2ej/package.box?download&psid=1"
 
-    # Max time to wait for the guest to shutdown
-    config.windows.halt_timeout = 25
-
-    # Admin user name and password
+	config.vm.guest = :windows
+	config.vm.communicator = "winrm"
+    config.vm.boot_timeout = 500
+	config.windows.halt_timeout = 20
+    config.windows.set_work_network = true
     config.winrm.username = "IEUser"
     config.winrm.password = "Passw0rd!"
 
-    # Configure base box parameters
-    config.vm.box = "Win7IE11"
-    config.vm.box_url = "./IE11_Win7.box"
-    config.vm.guest = :windows
+    config.vm.network :forwarded_port, guest: 3389, host: 3389, id: "rdp", auto_correct: true
+    config.vm.network :forwarded_port, guest: 5985, host: 5985, id: "winrm", auto_correct: true
+    config.vm.network :forwarded_port, guest: 22, host: 2222, id: "ssh", auto_correct: true
 
-    # Port forward WinRM and RDP
-    #config.vm.network :forwarded_port, guest: 3389, host: 3389
-    config.vm.network :forwarded_port, guest: 5985, host: 5985
-    
-    #Solve problem to connect SSH
-    config.ssh.username = "IEUser"  
-    config.ssh.password = "Passw0rd!"      
-    config.ssh.insert_key = false  
-
-    config.vm.provision "shell" do |shell|
-        #Turn UAC Off 
-        shell.inline = 'C:\Windows\System32\cmd.exe /k %windir%\System32\reg.exe ADD HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System /v EnableLUA /t REG_DWORD /d 0 /f'
-        
-        #Need to download .NET Framework 4.6 
-        #https://download.microsoft.com/download/F/9/4/F942F07D-F26F-4F30-B4E3-EBD54FABA377/NDP462-KB3151800-x86-x64-AllOS-ENU.exe
-
-        #Need to install Oracle Client 11g
-
-        #Need to install Visual Studio 2013 Ultimate or Test Agent to run Automated Tests.
-    end
-
-    config.vm.synced_folder ".", "c:/vagrant", disabled: false
+    config.vm.synced_folder ".", "/vagrant"
+	
+	config.vm.provider "virtualbox" do |v|
+        v.gui = false
+        v.customize ["modifyvm", :id, "--memory", 2048]
+        v.customize ["modifyvm", :id, "--cpus", 1]
+        v.customize ["modifyvm", :id, "--vram", 128]
+        v.customize ["modifyvm", :id, "--clipboard", "bidirectional"]
+        v.customize ["modifyvm", :id, "--draganddrop", "bidirectional"]
+        v.customize ["modifyvm", :id, "--accelerate3d", "on"]
+        v.customize ["modifyvm", :id, "--accelerate2dvideo", "on"]
+        v.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
+        v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+        v.customize ["setextradata", "global", "GUI/SuppressMessages", "all" ]        
+        v.customize ["guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-set-threshold", 10000]    
+  end
 end
-
